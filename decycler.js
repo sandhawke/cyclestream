@@ -9,7 +9,8 @@ function decycler(options, sink) {
     options = {}
   }
   let settings = {
-    internStrings: true
+    internStrings: true,
+    emit: 'neg'
   }
   Object.assign(settings, options)
 
@@ -18,14 +19,10 @@ function decycler(options, sink) {
   // temp
   let needsEscaping = x => false
   
-  // const map = bimap()
+  // might use a class the implements a faster indexOf, someday
   const map = []
   // rather than sending the index into the array, we send
   // (-2 - index), for reasons that are probably obsolete
-  function toCode (index) {
-    if (index === -1) return undefined
-    return -2 - index
-  }
 
   const me = function customDecycler (...items) {
     debug('\n\n\ndecycling', ...items)
@@ -41,10 +38,29 @@ function decycler(options, sink) {
     other.pairWith(me)
   }
   me.indexOf = item => map.indexOf(item)
-  function toPairCode (index) {
+  me.atIndex = index => map[index]
+
+  let codeFromMyIndex, codeFromPairIndex
+  // map an index into (1, 2, ...)
+  function goHi (index) {
     if (index === -1) return undefined
-    return 1 + index
+    return index + 1
   }
+  // map an index into (-2, -3, ...)
+  function goLo (index) {
+    if (index === -1) return undefined
+    return -2 - index
+  }
+  if (settings.emit === 'pos') {
+    codeFromMyIndex = goHi
+    codeFromPairIndex = goLo
+  } else if (settings.emit === 'neg') {
+    codeFromMyIndex = goLo
+    codeFromPairIndex = goHi
+  } else throw Error('unknown value for .emit option')
+  // we could also use odd + even
+  // or {ref:xxx}
+  // or new Ref(...)
 
   
   /* Can we just send this item as-is, passing it through with no processing?
@@ -74,23 +90,23 @@ function decycler(options, sink) {
     debug('value for', item)
     if (needsEscaping(item)) return escape(item)
     if (simplySend(item)) return item
-    let code = toCode(map.indexOf(item))
+    let code = codeFromMyIndex(map.indexOf(item))
     if (code === undefined && pairedWith) {
-      code = toPairCode(pairedWith.indexOf(item))
+      code = codeFromPairIndex(pairedWith.indexOf(item))
       debug('item in pair map? code=', code)
     }
     if (code === undefined) {
       debug('no code found', item)
       if (atomic(item)) {
-        code = toCode(map.push(item) - 1)
+        code = codeFromMyIndex(map.push(item) - 1)
         debug('code', code, 'assigned to atom', item)
         sink('define', code, item)
       } else {
-        code = toCode(map.push(item) - 1)
+        code = codeFromMyIndex(map.push(item) - 1)
         const coded = destructure(item)
         debug('code', code, 'assigned to structure', item, 'which coded is', coded)
-        const check = toCode(map.indexOf(item))
-        debug('CONFIRM', check,'is the code')
+        const check = codeFromMyIndex(map.indexOf(item))
+        if (check !== code) throw Error('internal structure damaged')
         sink('define', code, coded)
       }
     }
