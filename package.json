@@ -1,0 +1,18 @@
+{
+  "name": "cyclestream",
+  "version": "0.0.1",
+  "description": "Decycle/retrocycle for objects/arrays in an ongoing sequence",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "faucet"
+  },
+  "author": "Sandro Hawke (http://hawke.org/sandro)",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "faucet": "0.0.1",
+    "tape": "^4.6.3"
+  }
+}

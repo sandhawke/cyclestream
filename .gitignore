@@ -1,0 +1,7 @@
+*~
+/node_modules
+/OLD
+events.log
+.tmp
+README.html
+npm-debug.log
